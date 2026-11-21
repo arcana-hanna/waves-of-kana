@@ -1,0 +1,30 @@
+name: Build and deploy
+on:
+  push: {branches: [main]}
+  workflow_dispatch: {}
+permissions: {contents: read, pages: write, id-token: write}
+concurrency: {group: pages, cancel-in-progress: true}
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: {name: github-pages, url: "${{ steps.d.outputs.page_url }}"}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: 20}
+      - run: git clone --depth 1 https://github.com/KanjiVG/kanjivg.git /tmp/kvg
+      - name: Download dictionaries
+        continue-on-error: true
+        env: {GH_TOKEN: "${{ github.token }}"}
+        run: |
+          mkdir -p /tmp/dict && cd /tmp/dict
+          gh release download --repo scriptin/jmdict-simplified --pattern 'jmdict-eng-common-*.json.zip'
+          gh release download --repo scriptin/jmdict-simplified --pattern 'kanjidic2-en-*.json.zip'
+          for f in *.zip; do unzip -o "$f"; done
+      - run: node scripts/build-kanji.mjs /tmp/dict
+      - run: node scripts/build-data.mjs /tmp/kvg/kanji
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with: {path: public}
+      - id: d
+        uses: actions/deploy-pages@v4
