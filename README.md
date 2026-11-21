@@ -1,4 +1,4 @@
-# Kana Path
+# Waves of Kana
 Offline-capable kana trainer: learn kana in small groups and get real words from the very first lesson. Words only appear once all their kana are learned. Handwriting is checked automatically against KanjiVG stroke data.
 
 ## Deploy (one-time)
