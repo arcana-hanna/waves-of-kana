@@ -1,0 +1,9 @@
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 130'>
+<path d='M0 112 Q50 92 100 106 T200 101 T300 106 T400 99 V130 H0Z' fill='#12304c'/>
+<path d='M300 106 L333 66 L366 106Z' fill='#1a3b5d'/><path d='M322 80 L333 66 L344 80 L338 77 L333 82 L328 77Z' fill='#fff' fill-opacity='.85'/>
+<path d='M0 130 V86 C16 72 34 50 60 32 C84 14 116 8 142 19 C160 27 172 42 173 58 C160 46 140 44 124 56 C112 66 112 84 132 96 C150 106 170 108 190 108 L400 104 V130Z' fill='#27517f'/>
+<path d='M0 118 Q60 104 130 114 T260 112 T400 110 V130 H0Z' fill='#33649e'/>
+<path d='M60 32 C84 14 116 8 142 19 C160 27 172 42 173 58' fill='none' stroke='#fff' stroke-opacity='.92' stroke-width='3.4' stroke-linecap='round'/>
+<g fill='#fff' fill-opacity='.92'><path d='M163 36 q8 2 7 12 q-8 -3 -7 -12z'/><path d='M171 50 q7 3 4 12 q-8 -3 -4 -12z'/><path d='M153 28 q7 0 9 9 q-8 0 -9 -9z'/><circle cx='148' cy='24' r='2.4'/><circle cx='181' cy='47' r='1.8'/><circle cx='179' cy='66' r='1.8'/><circle cx='186' cy='57' r='1.4'/></g>
+<path d='M121 72 C129 63 141 63 149 67' fill='none' stroke='#fff' stroke-opacity='.55' stroke-width='1.6' stroke-linecap='round'/>
+</svg>

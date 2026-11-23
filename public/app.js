@@ -17,8 +17,8 @@ const STORY=[
 const unl=(s,f)=>s.l.map(x=>x[0]).join('').split('').filter(c=>RO[c]).every(f);
 let S;try{S=JSON.parse(localStorage.wk)}catch(e){}S=S||{k:{},w:{},ov:[],tol:.16,ord:1,set:0};S.st=S.st||{};S.a=S.a||{};S.j=S.j||{};
 const TMR=[],clrT=()=>{TMR.forEach(clearTimeout);TMR.length=0},later=(f,ms)=>TMR.push(setTimeout(f,ms));
-const DP=[['tol','Match tolerance (shape and place)',.05,.4,.01],['ptol','Tolerance for “right shape, wrong place”',.05,.4,.01],['idle','Idle ms before auto-check with strokes missing (0 = off)',0,15000,500],['okMs','Pause after a correct drawing (ms)',500,6000,100],['failMs','Delay before showing what is wrong (ms)',0,6000,100],['n','Points per stroke when comparing',8,48,2]];
-const D=()=>({tol:.16,ptol:.16,idle:5000,okMs:2000,failMs:2000,n:16,...S.d});
+const DP=[['tol','Shape tolerance (size and place ignored)',.05,.4,.01],['pt','Allowed offset of a stroke from its place',.05,.5,.01],['idle','Idle ms before auto-check with strokes missing (0 = off)',0,15000,500],['okMs','Pause after a correct drawing (ms)',500,6000,100],['failMs','Delay before showing what is wrong (ms)',0,6000,100],['n','Points per stroke when comparing',8,48,2]];
+const D=()=>({tol:.18,pt:.22,idle:5000,okMs:2000,failMs:2000,n:16,...S.d});
 const dbg=()=>DP.map(([k,l,a,b,st])=>`<label>${l}: <b id=v_${k}>${D()[k]}</b><input type=range min=${a} max=${b} step=${st} value=${D()[k]} oninput="S.d=S.d||{};S.d['${k}']=+this.value;$('#v_${k}').textContent=this.value;save()"></label>`).join('')+`<button onclick="S.d={};save();home()">Reset to defaults</button>`;
 const save=()=>{try{localStorage.wk=JSON.stringify(S)}catch(e){}},day=()=>Math.floor(Date.now()/864e5),IV=[0,1,2,4,8,16,32];
 let ST={},Q=[],qi=0,P,PS={},sel=new Set,KJ=[],KR={};
@@ -33,20 +33,22 @@ const hint=t=>t.ty=='kana'?(TIP[t.id]?`<br><small>${TIP[t.id]}</small>`:''):/aa|
 function nz(ss){const a=ss.flat(),xs=a.map(p=>p[0]),ys=a.map(p=>p[1]),x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys),s=Math.max(x1-x0,y1-y0)||1,cx=(x0+x1)/2,cy=(y0+y1)/2;return ss.map(t=>t.map(p=>[(p[0]-cx)/s,(p[1]-cy)/s]))}
 function rs(p,N=16){const L=[0];for(let i=1;i<p.length;i++)L.push(L[i-1]+Math.hypot(p[i][0]-p[i-1][0],p[i][1]-p[i-1][1]));const T=L.at(-1),o=[];let j=1;for(let k=0;k<N;k++){const d=T*k/(N-1);while(j<p.length-1&&L[j]<d)j++;const f=(d-L[j-1])/(L[j]-L[j-1]||1),a=p[j-1],b=p[j];o.push([a[0]+(b[0]-a[0])*f,a[1]+(b[1]-a[1])*f])}return o}
 const dist=(a,b)=>a.reduce((s,p,i)=>s+Math.hypot(p[0]-b[i][0],p[1]-b[i][1]),0)/a.length;
-const LB={dir:'goes the wrong way',shape:'has the wrong shape',pos:'has the right shape but the wrong place',order:'is right but belongs at a different step'};
-function check(user,ref,d,ord){const tol=d.tol,ptol=d.ptol;
-  if(!ref)return{ok:true,det:[],msg:'No stroke data loaded, so this one is not checked.'};
-  if(!user.length)return{ok:false,det:[],msg:'Draw the character first.'};
+const LB={dir:'goes the wrong way',shape:'has the wrong shape',pos:'has the right shape but sits too far from its place',order:'is right but belongs at a different step'};
+function check(user,ref,d,ord){
+  if(!ref)return{ok:true,v:'ok',det:[],msg:'No stroke data loaded, so this one is not checked.'};
+  if(!user.length)return{ok:false,v:'bad',det:[],msg:'Draw the character first.'};
   const nU=user.length,nR=ref.length;
-  if(nU!==nR)return{ok:false,det:[],msg:`<b>Stroke count:</b> you drew ${nU}, but it has ${nR}. ${nU<nR?'Something is missing.':'Something is extra.'}`};
+  if(nU!==nR)return{ok:false,v:'bad',det:[],msg:`<b>Stroke count:</b> you drew ${nU}, but it has ${nR}. ${nU<nR?'Something is missing.':'Something is extra.'}`};
   const U=nz(user).map(s=>rs(s,d.n)),R=nz(ref).map(s=>rs(s,d.n)),rv=a=>[...a].reverse();
-  const cn=s=>{const cx=s.reduce((a,p)=>a+p[0],0)/s.length,cy=s.reduce((a,p)=>a+p[1],0)/s.length;return s.map(p=>[p[0]-cx,p[1]-cy])};
-  const cls=(u,q)=>{if(dist(u,q)<=tol)return'ok';if(dist(u,rv(q))<=tol)return'dir';const a=cn(u),b=cn(q);return dist(a,b)<=ptol?'pos':dist(a,rv(b))<=ptol?'dir':'shape'};
+  const cen=s=>[s.reduce((a,p)=>a+p[0],0)/s.length,s.reduce((a,p)=>a+p[1],0)/s.length],ext=s=>{const x=s.map(p=>p[0]),y=s.map(p=>p[1]);return Math.max(Math.max(...x)-Math.min(...x),Math.max(...y)-Math.min(...y))};
+  const mv=(s,c,k)=>s.map(p=>[(p[0]-c[0])*k,(p[1]-c[1])*k]);
+  const cls=(u,q)=>{const cu=cen(u),cq=cen(q),eu=ext(u),eq=ext(q),k=eu>.1&&eq>.1?Math.min(1.6,Math.max(.6,eq/eu)):1,a=mv(u,cu,k),b=mv(q,cq,1),off=Math.hypot(cu[0]-cq[0],cu[1]-cq[1]),sz=!(eu>.1&&eq>.1)||(eu/eq>.45&&eu/eq<2.2);
+    if(sz&&dist(a,b)<=d.tol)return off<=d.pt?'ok':'pos';if(sz&&dist(a,rv(b))<=d.tol)return'dir';return'shape'};
   const used=new Set(),det=[];
-  U.forEach((u,i)=>{let j=i;if(!ord){j=-1;let bd=9;R.forEach((q,k)=>{if(used.has(k))return;const d=Math.min(dist(u,q),dist(u,rv(q)));if(d<bd){bd=d;j=k}})}
+  U.forEach((u,i)=>{let j=i;if(!ord){j=-1;let bd=9;R.forEach((q,k)=>{if(used.has(k))return;const e=Math.min(dist(u,q),dist(u,rv(q)));if(e<bd){bd=e;j=k}})}
     used.add(j);let c=cls(u,R[j]);if(ord&&c!='ok'&&R.some((q,k)=>k!=i&&cls(u,q)=='ok'))c='order';det.push(c)});
   const bad=det.filter(d=>d!='ok').length,n=det.length;
-  return{ok:!bad,det,msg:bad?`<b>${bad==n?'None of the strokes match.':bad==1?'One stroke is off.':bad+' of '+n+' strokes are off.'}</b><ul>${det.map((d,i)=>d=='ok'?'':`<li>Stroke ${i+1} ${LB[d]}.</li>`).join('')}</ul>`:'<b>✓ Nice!</b>'}}
+  const hard=det.filter(d=>d=='shape').length;return{ok:!bad,v:!bad?'ok':hard<=Math.floor(n/4)&&bad<=Math.ceil(n/2)?'near':'bad',det,msg:bad?`<b>${bad==n?'None of the strokes match.':bad==1?'One stroke is off.':bad+' of '+n+' strokes are off.'}</b><ul>${det.map((d,i)=>d=='ok'?'':`<li>Stroke ${i+1} ${LB[d]}.</li>`).join('')}</ul>`:'<b>✓ Nice!</b>'}}
 function brush(x,st){const n0=st.length,p=n0<3?st:st.map((q,i)=>i&&i<n0-1?[(st[i-1][0]+q[0]*2+st[i+1][0])/4,(st[i-1][1]+q[1]*2+st[i+1][1])/4]:q),n=p.length;
   if(n<2){x.beginPath();x.arc(p[0][0],p[0][1],6,0,7);x.fill();return}
   const L=[],R=[];p.forEach((q,i)=>{const a=p[Math.max(0,i-1)],b=p[Math.min(n-1,i+1)],dx=b[0]-a[0],dy=b[1]-a[1],d=Math.hypot(dx,dy)||1,w=2+7*Math.sqrt(Math.sin(Math.PI*(.08+.84*i/(n-1))));L.push([q[0]-dy/d*w,q[1]+dx/d*w]);R.push([q[0]+dy/d*w,q[1]-dx/d*w])});
@@ -135,10 +137,13 @@ const sok=(tw,v)=>{const x=nr(v.replace(/[^a-z]/gi,'')),ws=tw.filter(w=>RO[w[0]]
 const quizQ=id=>{const s=STORY.find(x=>x.id==id),pk=shuf(s.l.map((l,i)=>[l,i]).filter(([l])=>l[0]!='#'&&s.n.some(w=>pl(l[0]).includes(w)))).slice(0,3);return[...(s.q||[]).map(([q,a])=>({ty:'sq',sid:id,q,a:[].concat(a),nw:1})),...pk.map(([,i])=>({ty:'sq',sid:id,li:i,nw:1}))]};
 const BIG='あいうえおつやゆよ',SMALL='ぁぃぅぇぉっゃゅょ',toK=c=>c>='ァ'&&c<='ヶ'?String.fromCharCode(c.charCodeAt(0)-96):c,clean=v=>v.replace(/[^\u3041-\u3096\u30a1-\u30fc]/g,'');
 const JC=['あいうえお','かきくけこ','さしすせそ','たちつてと','なにぬねの','はひふへほ','まみむめも','や_ゆ_よ','らりるれろ','わ_を_ん'].map(x=>[...x]);
+if(typeof addEventListener=='function'){const pop=document.createElement('div');pop.id='pop';document.body.append(pop);
+  addEventListener('pointerdown',e=>{const b=e.target.closest&&e.target.closest('.jk,.kk');if(!b||b.classList.contains('fk')||b.classList.contains('ck'))return;if(navigator.vibrate)navigator.vibrate(8);const r=b.getBoundingClientRect();pop.textContent=b.textContent;pop.style.cssText=`display:grid;left:${r.left+r.width/2}px;top:${r.top}px`},true);
+  ['pointerup','pointercancel','scroll'].forEach(t=>addEventListener(t,()=>{pop.style.display='none'},true))}
 function ibox(chk,idk,rr){const ref={v:'',lock:0},st={k:0},kana=S.kbm!='r',box=$('#kbx'),ty=$('#ty');ref.kana=kana;
   const sh=()=>{ty.textContent=(kana?ref.v:ime(ref.v))||'…'},ch=c=>st.k?String.fromCharCode(c.charCodeAt(0)+96):c;
   const grid=()=>[0,1,2,3,4].map(r=>JC.map(c=>c[r]=='_'?'<i></i>':`<button class=jk data-k="${ch(c[r])}">${ch(c[r])}</button>`).join('')).join('');
-  box.innerHTML=(kana?`<div class=jg id=jg>${grid()}</div><div class=jm>${['゛','゜','小','ー','、','。','␣','⌫'].map(k=>`<button class=jk data-k="${k}">${k=='␣'?'space':k}</button>`).join('')}<button class=jk data-k="ア">ア/あ</button></div>`:`${KB}<div><button class=kk data-k="␣" style="max-width:none;flex:4">space</button></div>`)+`<div><button id=dk>I don’t know</button><button id=ent class=big style="width:auto;flex:1;margin:4px">Check</button></div><button class=lnk id=sw>${kana?'Type in romaji instead':'Use the Japanese keyboard'}</button>`;
+  box.innerHTML=`<div class=kt><button class=tb data-k="ア" ${kana?'':'hidden'}>ア/あ</button><button class=tb id=sw>${kana?'Romaji keyboard':'Japanese keyboard'}</button><button class=tb id=dk>I don’t know</button></div>`+(kana?`<div class=jg id=jg>${grid()}</div><div class=jr>${['゛','゜','小','ー','、','。'].map(k=>`<button class="jk fk" data-k="${k}">${k}</button>`).join('')}<button class="jk fk" data-k="⌫">⌫</button><button id=ent class="jk ck">Check</button></div>`:`${KB}<div class="jr r2"><button class="kk fk" data-k="␣">space</button><button id=ent class="kk ck">Check</button></div>`);
   box.onpointerdown=e=>{const b=e.target.closest('[data-k]');if(!b||ref.lock)return;e.preventDefault();const k=b.dataset.k;
     if(!kana){ref.v=k=='⌫'?ref.v.slice(0,-1):ref.v+(k=='␣'?' ':k);sh();return}
     if(k=='ア'){st.k^=1;$('#jg').innerHTML=grid();return}
@@ -165,7 +170,7 @@ function story(id,again){const s=STORY.find(x=>x.id==id);
 
 const sta=(id,ok)=>{(S.a[id]=S.a[id]||[0,0])[ok?0:1]++};
 const nr=s=>s.toLowerCase().replace(/sy([auo])/g,'sh$1').replace(/ty([auo])/g,'ch$1').replace(/(?:zy|jy)([auo])/g,'j$1').replace(/si/g,'shi').replace(/ti/g,'chi').replace(/tu/g,'tsu').replace(/(?<![sc])hu/g,'fu').replace(/zi/g,'ji').replace(/ou|oo/g,'o').replace(/uu/g,'u').replace(/ei|ee/g,'e').replace(/aa/g,'a').replace(/ii/g,'i').replace(/nn/g,'n');
-const KB=['qwertyuiop','asdfghjkl','zxcvbnm⌫'].map(r=>`<div>${[...r].map(k=>`<button class=kk data-k="${k}">${k}</button>`).join('')}</div>`).join('');
+const KB=['qwertyuiop','asdfghjkl','zxcvbnm⌫'].map((r,i)=>`<div class=kr${i}>${[...r].map(k=>`<button class="kk${k=='⌫'?' fk':''}" data-k="${k}">${k}</button>`).join('')}</div>`).join('');
 const bindKB=cb=>document.querySelectorAll('.kk').forEach(b=>b.onpointerdown=e=>{e.preventDefault();cb(b.dataset.k)});
 let PP={pre:'all',cnt:10,m:{write:1,type:1,dict:1,rec:0},re:1};
 function practice(){const dl=dueL(),rv=`<section class=card><h3>Review</h3>${dl.length?`<button class=big onclick=rstart()>Review now (${Math.min(12,dl.length)} of ${dl.length} due)</button>`:'<p class=s style="margin:0">Nothing is due right now.</p>'}</section>`,ch=(l,on,f)=>`<button class=chip aria-pressed="${!!on}" onclick="${f}">${l}</button>`,
@@ -217,19 +222,30 @@ function rec(t){const k=t.ty=='kana',ans=k?RO[t.id]:MEAN[t.id],pool=k?ALL.filter
   const o=shuf([ans,...shuf([...new Set(pool)].filter(p=>p!=ans)).slice(0,3)]);
   h(`<h1>${t.id}</h1><button onclick="say('${t.id}')">🔊</button><div>${o.map(v=>`<button class=o>${v}</button>`).join('')}</div>`);
   document.querySelectorAll('.o').forEach(b=>b.onclick=()=>{const ok=b.textContent==ans;document.querySelectorAll('.o').forEach(z=>{z.onclick=null;if(z.textContent==ans)z.style.background='#2a9d4a';else if(z==b)z.style.background='#d33'});if(t.pr)pdone(t,ok);else if(!t.nw)grade(t,ok);setTimeout(next,ok?500:1400)})}
-function writeT(t){const ch=t.ty=='kana'?[t.id]:[...t.id];let i=0,bad=0;
-  const pr=t.m=='dict'?'Listen, then write the word':t.ty=='kana'?RO[t.id]:t.ty=='kanji'?MEAN[t.id]+' ('+KR[t.id]+')':rom(t.id)+' · '+MEAN[t.id];
-  const step=()=>{clrT();h(`<p class=s>${i+1} of ${ch.length}</p><h2>${pr}</h2><div class=row2><button onclick="say('${t.id}')">🔊 Listen</button><button id=hn class=tg aria-pressed=false>💡 Hint</button></div><div class=cw><canvas id=c width=320 height=320></canvas><button id=ov class=ov hidden><span>Tap to try again</span></button></div><div id=m class=fb></div><div id=bt><button id=cl>Clear</button></div>`);
-    P=pad($('#c'));P.ref=ST[ch[i]];P.down=clrT;
-    P.cb=()=>{clrT();if(P.ref&&P.s.length>=P.ref.length)later(judge,250);else if(D().idle&&P.s.length)later(judge,D().idle)};
-    $('#hn').onclick=e=>{P.showRef=!P.showRef;e.currentTarget.setAttribute('aria-pressed',!!P.showRef);P.show()};
-    $('#cl').onclick=()=>P.clear();
-    $('#ov').onclick=()=>{P.lock=0;P.showRef=0;P.clear();$('#hn').setAttribute('aria-pressed',false);$('#ov').hidden=true;$('#m').textContent='';$('#bt').hidden=false};
-    if(t.m=='dict'&&!i)say(t.id)};
-  const adv=()=>{clrT();i++;if(i<ch.length)step();else{if(t.nw){const v=bag(t.ty)[t.id];v.b=bad?0:1}if(t.pr)pdone(t,!bad);else grade(t,!bad);next()}};
-  function judge(){if(P.lock||!P.s.length)return;const r=check(P.s,ST[ch[i]],D(),S.ord);P.lock=1;$('#bt').hidden=true;
-    if(r.ok){P.showRef=1;P.show(r.det);$('#m').innerHTML='<b>✓ You did it right!</b> <span class=s>The blue dashes show the reference.</span> ';const b=document.createElement('button');b.className='chip';b.textContent='Next';b.onclick=adv;$('#m').append(b);later(adv,D().okMs)}
-    else{bad++;P.show(null);later(()=>{P.show(r.det);$('#m').innerHTML=r.msg;$('#ov').hidden=false},D().failMs)}}
-  step()}
+function mini(cv,st){const x=cv.getContext('2d'),k=cv.width/320;x.setTransform(k,0,0,k,0,0);x.clearRect(0,0,320,320);x.fillStyle=getComputedStyle(cv).color;st.forEach(q=>brush(x,q));x.setTransform(1,0,0,1,0,0)}
+function writeT(t){const ch=t.ty=='kana'?[t.id]:[...t.id],n=ch.length,strict=n==1,res=Array(n).fill(null);let cur=0,bad=0,fin=0,romOn=t.ty=='word'&&!!t.nw;
+  const base=t.m=='dict'?'Listen, then write the word':t.ty=='kana'?RO[t.id]:t.ty=='kanji'?MEAN[t.id]+' ('+KR[t.id]+')':(romOn?rom(t.id)+' · ':'')+MEAN[t.id];
+  h(`<h2 id=pr>${base}</h2><div class=row2><button onclick="say('${t.id}')">🔊 Listen</button><button id=hn class=tg aria-pressed=false>💡 Hint</button></div>${n>1?`<div class=wlw><button class=sc id=sl aria-label="Scroll left">◀</button><div class=wl id=wl>${ch.map((c,i)=>`<button class=wb data-i=${i}><canvas width=104 height=104></canvas><i></i></button>`).join('')}</div><button class=sc id=sr aria-label="Scroll right">▶</button></div>`:''}<div class=cw><canvas id=c width=320 height=320></canvas><button id=ov class=ov hidden><span>Tap to try again</span></button></div><div id=m class=fb></div><div id=bt><button id=un>↶ Undo</button><button id=cl>Clear</button><button id=go>→</button></div>`);
+  const M=$('#m'),P0=pad($('#c'));P=P0;
+  const upd=()=>{if(n<2)return;[...$('#wl').children].forEach((b,i)=>{const r=res[i];b.className='wb'+(r?' '+r.v:'')+(i==cur&&!fin?' cur':'');b.lastChild.textContent=r?{ok:'✓',near:'~',bad:'!'}[r.v]:'';if(r)mini(b.firstChild,r.s);else b.firstChild.getContext('2d').clearRect(0,0,104,104)});try{$('#wl').children[cur].scrollIntoView({inline:'center',block:'nearest',behavior:'smooth'})}catch(e){}};
+  const setRef=()=>{P.ref=ST[ch[cur]];P.showRef=0;P.lock=0;$('#hn').setAttribute('aria-pressed',false);P.clear();upd()};
+  const done=()=>{clrT();if(t.nw){const v=bag(t.ty)[t.id];v.b=bad?0:1}if(t.pr)pdone(t,!bad);else grade(t,!bad);next()};
+  const nxt=()=>{const b=document.createElement('button');b.className='chip';b.textContent='Next';b.onclick=done;M.append(b)};
+  const wd=()=>{const bc=res.filter(r=>r.v=='bad').length,nr=res.filter(r=>r.v=='near').length;
+    if(!bc){fin=1;P.lock=1;upd();M.innerHTML=`<b>✓ Word correct!</b> ${nr?'<span class=s>A few characters were slightly off. Tap a box to see why.</span> ':''}`;nxt();later(done,D().okMs+(nr?1500:0))}
+    else{bad++;M.innerHTML=`<b>Almost.</b> ${bc} character${bc>1?'s need':' needs'} another try. Tap a red box to redraw it.`;cur=res.findIndex(r=>r&&r.v=='bad');setRef()}};
+  const commit=()=>{clrT();if(P.lock||!P.s.length)return;const r=check(P.s,ST[ch[cur]],D(),S.ord);
+    if(strict){P.lock=1;if(r.ok){P.showRef=1;P.show(r.det);M.innerHTML='<b>✓ You did it right!</b> <span class=s>The blue dashes show the reference.</span> ';nxt();later(done,D().okMs)}
+      else{bad++;P.show(null);later(()=>{P.show(r.det);M.innerHTML=r.msg;$('#ov').hidden=false},D().failMs)}return}
+    res[cur]={s:P.s.map(q=>q.slice()),v:r.v,msg:r.msg};M.innerHTML=r.v=='ok'?'':`<b>Character ${cur+1}:</b> ${r.msg}`;
+    const nx=res.findIndex(q=>!q);if(nx>=0){cur=nx;setRef()}else wd()};
+  P.down=clrT;P.cb=()=>{clrT();if(P.ref&&P.s.length>=P.ref.length)later(commit,250);else if(D().idle&&P.s.length)later(commit,D().idle)};
+  $('#hn').onclick=e=>{if(t.ty=='word'&&!romOn){romOn=1;$('#pr').innerHTML=base+'<br><small>'+rom(t.id)+'</small>';return}P.showRef=!P.showRef;e.currentTarget.setAttribute('aria-pressed',!!P.showRef);P.show()};
+  $('#un').onclick=()=>{if(!P.lock){P.s.pop();P.show()}};$('#cl').onclick=()=>{if(!P.lock)P.clear()};$('#go').onclick=commit;
+  $('#ov').onclick=()=>{P.lock=0;P.showRef=0;P.clear();$('#ov').hidden=true;M.textContent='';$('#hn').setAttribute('aria-pressed',false)};
+  if(n>1){$('#sl').onclick=()=>$('#wl').scrollBy({left:-140,behavior:'smooth'});$('#sr').onclick=()=>$('#wl').scrollBy({left:140,behavior:'smooth'});
+    $('#wl').onclick=e=>{const b=e.target.closest('.wb');if(!b||fin)return;const i=+b.dataset.i,q=res[i];
+      if(q){M.innerHTML=`<b>Character ${i+1}:</b> ${q.msg}<br><button class=chip id=rd>Redraw it</button>`;$('#rd').onclick=()=>{res[i]=null;cur=i;M.textContent='';setRef()}}else{cur=i;setRef()}}}
+  setRef();if(t.m=='dict')say(t.id)}
 if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js');
 Promise.all([fetch('strokes.json').then(r=>r.json()).then(j=>ST=j).catch(()=>{}),fetch('kanji.json').then(r=>r.json()).then(j=>{KJ=j;j.forEach(x=>{KR[x.k]=x.r;MEAN[x.k]=x.m})}).catch(()=>{})]).finally(()=>{Object.entries(S.j).forEach(([k,v])=>{if(!KR[k]&&v.r){KR[k]=v.r;MEAN[k]=v.m}});home()});
