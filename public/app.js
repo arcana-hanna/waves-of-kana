@@ -1,4 +1,4 @@
-const $=s=>document.querySelector(s),A=$('#app'),h=s=>A.innerHTML=s;
+const $=s=>document.querySelector(s),A=$('#app'),h=s=>{A.innerHTML=s;const t=$('#tabs');if(t)t.hidden=true};
 const GR=[['あいうえお','a i u e o'],['かきくけこ','ka ki ku ke ko'],['さしすせそ','sa shi su se so'],['たちつてと','ta chi tsu te to'],['なにぬねの','na ni nu ne no'],['はひふへほ','ha hi fu he ho'],['まみむめも','ma mi mu me mo'],['やゆよ','ya yu yo'],['らりるれろ','ra ri ru re ro'],['わをん','wa wo n'],['っゃゅょ','small_tsu small_ya small_yu small_yo'],['がぎぐげご','ga gi gu ge go'],['ざじずぜぞ','za ji zu ze zo'],['だぢづでど','da ji zu de do'],['ばびぶべぼ','ba bi bu be bo'],['ぱぴぷぺぽ','pa pi pu pe po']];
 GR.slice().forEach(([k,r])=>GR.push([[...k].map(c=>String.fromCharCode(c.charCodeAt(0)+96)).join(''),r]));GR.push(['ー','long_mark']);
 const RO={},ALL=[];GR.forEach(([k,r])=>[...k].forEach((c,i)=>{RO[c]=r.split(' ')[i].replace('_',' ');ALL.push(c)}));
@@ -21,7 +21,7 @@ const DP=[['tol','Shape tolerance (size and place ignored)',.05,.4,.01],['pt','A
 const D=()=>({tol:.18,pt:.22,idle:5000,okMs:2000,failMs:2000,n:16,...S.d});
 const dbg=()=>DP.map(([k,l,a,b,st])=>`<label>${l}: <b id=v_${k}>${D()[k]}</b><input type=range min=${a} max=${b} step=${st} value=${D()[k]} oninput="S.d=S.d||{};S.d['${k}']=+this.value;$('#v_${k}').textContent=this.value;save()"></label>`).join('')+`<button onclick="S.d={};save();home()">Reset to defaults</button>`;
 const save=()=>{try{localStorage.wk=JSON.stringify(S)}catch(e){}},day=()=>Math.floor(Date.now()/864e5),IV=[0,1,2,4,8,16,32];
-let ST={},Q=[],qi=0,P,PS={},sel=new Set,KJ=[],KR={};
+let PM=0,TO={r:[]},ST={},Q=[],qi=0,P,PS={},sel=new Set,KJ=[],KR={};
 const say=t=>{try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(KR[t]||t);u.lang='ja-JP';u.rate=.8;speechSynthesis.speak(u)}catch(e){}};
 const shuf=a=>{for(let i=a.length;i>1;){const j=Math.random()*i--|0;[a[i],a[j]]=[a[j],a[i]]}return a};
 const SM='ゃゅょャュョ',rom=w=>{const a=[...w];let o='';a.forEach((c,i)=>{const n=a[i+1],y=SM.indexOf(n);if(c=='っ'||c=='ッ'){const q=RO[n]||'';o+=q.startsWith('ch')?'t':q[0]||'';return}if(SM.includes(c))return;if(c=='ー'){o+=o.slice(-1);return}let b=RO[c];if(y>=0){const v='auo'[y%3];b=/(shi|chi|ji)$/.test(b)?b.slice(0,-1)+v:b.slice(0,-1)+'y'+v}o+=b});return o};
@@ -66,26 +66,23 @@ function pad(cv){const x=cv.getContext('2d'),o={s:[],lock:0};let c=null;const C=
   o.show();return o}
 function anim(cv,ref){const x=cv.getContext('2d'),k=cv.width/109;ref.forEach((s,i)=>setTimeout(()=>{x.strokeStyle='#4a90e2';x.lineWidth=5;x.lineCap='round';x.setLineDash([8,6]);x.beginPath();s.forEach(([a,b],j)=>j?x.lineTo(a*k,b*k):x.moveTo(a*k,b*k));x.stroke();x.setLineDash([])},i*500))}
 // ---- screens
-function home(){clrT();if(!S.set)return place();const t=day(),due=[...Object.values(S.k),...Object.values(S.w),...Object.values(S.j)].filter(v=>v.d<=t).length,lv=c=>!S.k[c]?0:S.k[c].b<2?1:S.k[c].b<4?2:3,cell=c=>`<span class="c l${lv(c)}">${c}</span>`,us=STORY.filter(s=>unl(s,c=>S.k[c])),nj=Object.keys(S.j).length,nl=nextL(),kjc=nl!=null&&LS.slice(0,nh).every((_,x)=>lDone(x))&&lp(-1,'std').j.length?`<section class=card><h3>Kanji ready</h3><p class=s>${lp(-1,'std').j.length} kanji for words you can already read.</p><button class=big onclick="lesson(-1)">Start a kanji lesson</button></section>`:'',hero=nl!=null?`<section class=card><h3>Next lesson</h3><div class=chips>${LS[nl].map(c=>`<span class=gl>${c}</span>`).join('')}</div><button class=big onclick="lesson(${nl})">Start next lesson</button></section>`:`<section class=card><h3>All kana learned</h3><button class=big onclick="lesson(-1)">Start a kanji lesson</button></section>`;
-  h(`<div class=hd><b>Waves of Kana</b><span>${Object.keys(S.k).length}/${ALL.length} kana · ${Object.keys(S.w).length} words · ${nj} kanji</span></div>
-  ${hero}${kjc}<section class=card><h3>Lesson path</h3><div class=chips>${LO().map(i=>`<button class=chip aria-pressed=\"${lDone(i)}\" onclick=\"lesson(${i})\">${LS[i][0]}</button>`).join('')}</div></section>
-  <div class=row><button onclick=practice()><b>Practice</b><small>${due} due · or pick what to drill</small></button><button onclick="document.getElementById('st').scrollIntoView({behavior:'smooth'})"><b>Stories</b><small>${us.length} of ${STORY.length} unlocked</small></button></div>
-  <section class=card><h3>Hiragana</h3><div class=g>${ALL.filter(c=>c<'ァ').map(cell).join('')}</div><h3>Katakana</h3><div class=g>${ALL.filter(c=>c>='ァ').map(cell).join('')}</div><p class=s>Faint: not learned yet · pale to solid: how well you know it</p></section>
-  ${nj?`<section class=card><h3>Kanji</h3><p class=jp>${Object.keys(S.j).join(' ')}</p></section>`:''}
-  <section class=card id=st><h3>Stories</h3>${us.map(s=>`<button class=li onclick="story('${s.id}',1)">${S.st[s.id]?'✓ ':''}${s.t}</button>`).join('')}<p class=s>${STORY.length-us.length} more unlock as you learn kana.</p></section>
-  <details class=card><summary>Settings and progress</summary><h3>Developer: checker tuning</h3>${dbg()}<label><input type=checkbox ${S.ord?'checked':''} onchange="S.ord=+this.checked;save()"> Stroke order must match</label><label><input type=checkbox ${S.kt?'checked':''} onchange="S.kt=+this.checked;save()"> Learn katakana alongside hiragana</label><button onclick=exp()>Export progress</button><label>Import progress <input type=file accept=.json onchange=imp(this)></label><button onclick=place()>Edit known kana</button></details>
-  <p><small>Stroke data: KanjiVG © Ulrich Apel, CC BY-SA 3.0. Word data: JMdict and KANJIDIC2 © EDRDG. Progress is stored in this browser only, so export it now and then.</small></p>`)}
-const sk=(c,on)=>{if(on){if(!S.k[c])S.k[c]={b:2,d:day()+2}}else delete S.k[c]};
+function home(){clrT();TO.on=0;if(!S.set)return first();const due=dueL().length,nl=nextL(),unread=nl!=null&&LS[nl].every(c=>S.k[c]),nj=Object.keys(S.j).length,hd=LS.slice(0,nh).every((_,x)=>lDone(x)),
+  hero=nl!=null?`<section class=card><h3>Next step</h3><div class=chips>${LS[nl].map(c=>`<span class=gl>${c}</span>`).join('')}</div>${unread?'<p class=s>You can read these. This lesson adds writing and their words.</p>':''}<button class=big onclick="lesson(${nl})">Start this lesson</button></section>`:`<section class=card><h3>All kana learned</h3><button class=big onclick="lesson(-1)">Start a kanji lesson</button></section>`,
+  cuc=cuWords().length?`<section class=card><h3>Catch-up</h3><p class=s>${cuWords().length} words use kana you already know and haven’t been covered yet.</p><button class=big onclick=catchup()>Check them</button></section>`:'',
+  kjc=nl!=null&&hd&&lp(-1,'std').j.length?`<section class=card><h3>Kanji ready</h3><p class=s>${lp(-1,'std').j.length} kanji for words you can already read.</p><button class=big onclick="lesson(-1)">Start a kanji lesson</button></section>`:'';
+  h(`<div class=hd><b>Waves of Kana</b></div>${hero}${cuc}${kjc}<section class=card><h3>Reviews</h3>${due?`<p class=s>${due} waiting</p><button class=big onclick=rstart()>Review now</button>`:'<p class=s style="margin:0">Nothing is waiting.</p>'}</section>
+  <section class=card><h3>Path</h3><div class=chips>${LO().map(i=>`<button class="chip pc" aria-label="Unit ${LS[i][0]}: kana, words, story" onclick="lesson(${i})"><span class=jp>${LS[i][0]}</span><small>${unitMarks(i)}</small></button>`).join('')}</div><p class=s>Under each unit: kana · words · story. ● done, ◐ partly, ○ not yet, – none. Every unit is open, and each offers a short test if you already know it.</p></section>`);tab('path')}
+const sk=(c,on)=>{if(on){if(!S.k[c])S.k[c]={b:1,d:day()+1+(Math.random()*5|0),wr:PM}}else delete S.k[c]};
 const prow=gi=>{const cs=[...GR[gi][0]],all=cs.every(c=>S.k[c]);cs.forEach(c=>sk(c,!all));save();place()};
 const pall=m=>{ALL.forEach(c=>{if(m=='n'||(m=='h'&&c<'ァ')||(m=='k'&&c>='ァ'))sk(c,m!='n')});save();place()};
 function place(){const kg=GR.findIndex(g=>g[0][0]>='ァ');
-  h(`<h2>Which kana do you already know?</h2><p class=s>${Object.keys(S.k).length} selected. Tap “Row” to select a whole row, or use the shortcuts.</p><div class=chips><button class=chip onclick="pall('h')">All hiragana</button><button class=chip onclick="pall('k')">All katakana</button><button class=chip onclick="pall('n')">Clear all</button></div>${GR.map(([k],gi)=>`${gi==0?'<h3>Hiragana</h3>':gi==kg?'<h3>Katakana</h3>':''}<div class=pr><button class=rl onclick="prow(${gi})">Row</button>${[...k].map(c=>`<button class="k ${S.k[c]?'on':''}" onclick="tg('${c}',this)">${c}</button>`).join('')}</div>`).join('')}<button class=big onclick="S.set=1;save();home()">Done</button>`)}
-const tg=(c,e)=>{if(S.k[c])delete S.k[c];else S.k[c]={b:2,d:day()+2};e.classList.toggle('on');save()};
+  h(`<h2>Which kana do you already know?</h2><p class=s>${Object.keys(S.k).length} selected. Tap “Row” to select a whole row, or use the shortcuts.</p><div class=chips><button class=chip aria-pressed="${!PM}" onclick="PM=0;place()">Mark as: can read</button><button class=chip aria-pressed="${!!PM}" onclick="PM=1;place()">Mark as: can read and write</button></div><p class=s>Kana marked “can read” still get a writing lesson. Everything you mark comes back in an early review to confirm it.</p><div class=chips><button class=chip onclick="pall('h')">All hiragana</button><button class=chip onclick="pall('k')">All katakana</button><button class=chip onclick="pall('n')">Clear all</button></div>${GR.map(([k],gi)=>`${gi==0?'<h3>Hiragana</h3>':gi==kg?'<h3>Katakana</h3>':''}<div class=pr><button class=rl onclick="prow(${gi})">Row</button>${[...k].map(c=>`<button class="k ${S.k[c]?'on':''}" onclick="tg('${c}',this)">${c}</button>`).join('')}</div>`).join('')}<button class=big onclick="S.set=1;save();placeSum()">Done</button>`)}
+const tg=(c,e)=>{if(S.k[c])delete S.k[c];else S.k[c]={b:1,d:day()+1+(Math.random()*5|0),wr:PM};e.classList.toggle('on');save()};
 const exp=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S)]));a.download='waves-of-kana-progress.json';a.click()};
 const imp=i=>i.files[0].text().then(t=>{S=JSON.parse(t);save();home()});
 const LS=(()=>{const a=GR.map(g=>[...g[0]]),l=a.pop();a[a.length-1].push(...l);return a})(),nh=GR.findIndex(g=>g[0][0]>='ァ');
 const LO=()=>{const h=[...Array(nh).keys()],k=LS.map((_,i)=>i).slice(nh);if(!S.kt)return[...h,...k];const o=[];for(let i=0;i<Math.max(h.length,k.length);i++){if(h[i]!=null)o.push(h[i]);if(k[i]!=null)o.push(k[i])}return o};
-const lDone=i=>LS[i].every(c=>S.k[c]),nextL=()=>LO().find(i=>!lDone(i));
+const lDone=i=>LS[i].every(c=>S.k[c]&&S.k[c].wr!==0),nextL=()=>LO().find(i=>!lDone(i));
 const dueL=()=>[...Object.entries(S.k).map(([id,v])=>['kana',id,v]),...Object.entries(S.w).map(([id,v])=>['word',id,v]),...Object.entries(S.j).map(([id,v])=>['kanji',id,v])].filter(x=>x[2].d<=day()).sort((a,b)=>a[2].d-b[2].d);
 const rq1=([ty,id,v])=>({ty,id,v:Math.random()<.5,m:ty=='kana'?(v.b<2&&!RO[id].includes(' ')?'type':'write'):ty=='word'?(v.b<2?'mean':v.b%2?'dict':'write'):(v.b<2?'type':'write')});
 function rstart(){PS.on=0;Q=dueL().slice(0,12).map(rq1);qi=0;next()}
@@ -95,12 +92,38 @@ function lp(i,len){const kana=i>=0?LS[i]:[],kn=new Set([...Object.keys(S.k),...k
   for(const pass of[0,1])for(const x of KJ){if(j.length>=lim)break;if(S.j[x.k]||j.includes(x.k)||(pass==0&&!kw.has(x.w||x.r)))continue;if(x.w?kw.has(x.w):[...x.r].every(c=>kn.has(c))&&(x.d||[]).every(c=>KC.has(c))){j.push(x.k);[...x.k].forEach(c=>KC.add(c))}}
   const sty=len=='long'?STORY.find(s=>!S.st[s.id]&&unl(s,c=>kn.has(c))&&s.n.every(x=>S.w[x]||w.includes(x)||w2.includes(x))):null;
   return{kana,w,w2,j,sty}}
+const cuWords=()=>W.map(w=>w[0]).filter(w=>!S.w[w]&&[...w].every(c=>S.k[c]));
+const KU=i=>{const k=new Set();for(const j of LO()){LS[j].forEach(c=>k.add(c));if(j==i)break}return k};
+const uWords=i=>{const k=KU(i);return W.map(w=>w[0]).filter(w=>[...w].every(c=>k.has(c))&&[...w].some(c=>LS[i].includes(c)))};
+const dot=(a,t)=>!t?'–':a==t?'●':a?'◐':'○';
+function unitMarks(i){const ws=uWords(i),k=KU(i),ss=STORY.filter(s=>LO().find(j=>unl(s,c=>KU(j).has(c)))==i);
+  return dot(LS[i].filter(c=>S.k[c]&&S.k[c].wr!==0).length,LS[i].length)+dot(ws.filter(w=>S.w[w]).length,ws.length)+dot(ss.filter(x=>S.st[x.id]).length,ss.length)}
+function catchup(){const all=cuWords(),ws=all.slice(0,8),n=all.length;
+  h(`<div class=top><button class=x aria-label=Back onclick=home()>←</button><h2 style="margin:0">Catch-up</h2></div><section class=card><p>${n} word${n>1?'s':''} use kana you already know and haven’t been covered yet. For each one, type its meaning. If you don’t know it, the app teaches it to you.</p><div class=chips>${ws.map(w=>`<span class=gl>${w}</span>`).join('')}</div>${n>8?`<p class=s>${n-8} more after these.</p>`:''}</section><button class=big onclick=cstart()>Check these ${ws.length}</button>`)}
+function cstart(){PS.on=0;Q=cuWords().slice(0,8).map(w=>({ty:'word',id:w,m:'mean',v:true,cu:1,nw:1}));qi=0;next()}
+function toStart(i){PS.on=0;TO={on:1,r:[]};const p=lp(i,'std');Q=i>=0?[...LS[i].map(c=>({ty:'kana',id:c,m:'write',to:1,nw:1})),...uWords(i).filter(w=>!S.w[w]).map(w=>({ty:'word',id:w,m:'mean',v:true,to:1,nw:1}))]:p.j.map(k=>({ty:'kanji',id:k,m:'type',to:1,nw:1}));qi=0;next()}
+function tres(){const ok=TO.r.filter(x=>x[2]),no=TO.r.filter(x=>!x[2]);ok.forEach(([ty,id])=>{if(ty=='kana')S.k[id]={b:3,d:day()+4,wr:1};else if(ty=='word')S.w[id]={b:3,d:day()+4};else S.j[id]={b:3,d:day()+4,r:KR[id],m:MEAN[id]}});save();TO.on=0;
+  h(`<h2>Test result</h2><section class=card><p><b>${ok.length}</b> item${ok.length==1?'':'s'} counted as known. They come back for review in a few days.</p>${no.length?`<p><b>${no.length}</b> still need learning: <span class=jp>${no.map(x=>x[1]).join(' ')}</span>. They stay on your path.</p>`:''}</section><button class=big onclick=home()>Back to the path</button>`)}
+function first(){h(`<h2>Welcome to Waves of Kana</h2><p class=s>How much do you already know? You can change this later.</p>${[['Nothing yet','Start with the first row of hiragana.','S.set=1;save();home()'],['Some kana','Pick the kana I can already read.','place()'],['All the kana','I can read and write hiragana and katakana. Then check which words I know.','allk()']].map(([a,b,f])=>`<button class="card big2" onclick="${f}"><b>${a}</b><br><span class=s>${b}</span></button>`).join('')}`)}
+const allk=()=>{PM=1;ALL.forEach(c=>{if(!S.k[c])S.k[c]={b:1,d:day()+1+(Math.random()*5|0),wr:1}});S.set=1;save();placeSum()};
+const tab=n=>{const t=$('#tabs');if(!t)return;t.hidden=false;[...t.children].forEach(b=>b.setAttribute('aria-current',b.dataset.t==n))};
+const lv=c=>!S.k[c]?0:S.k[c].b<2?1:S.k[c].b<4?2:3;
+function read(){const us=STORY.filter(s=>unl(s,c=>S.k[c]));h(`<h2>Read</h2><section class=card>${us.length?us.map(s=>`<button class=li onclick="story('${s.id}',1)">${S.st[s.id]?'✓ ':''}${s.t}</button>`).join(''):'<p class=s style="margin:0">Stories unlock as you learn kana.</p>'}<p class=s>${STORY.length-us.length} more unlock as you learn kana. Open a story to read it, tap words for their meaning, and take its quiz.</p></section>`);tab('read')}
+function you(){const nj=Object.keys(S.j).length,cell=c=>`<span class="c l${lv(c)}">${c}</span>`;
+  h(`<h2>You</h2><section class=card><p style="margin:0">You can read <b>${Object.keys(S.k).length}</b> kana, <b>${Object.keys(S.w).length}</b> words and <b>${nj}</b> kanji.</p></section>
+  <section class=card><h3>Hiragana</h3><div class=g>${ALL.filter(c=>c<'ァ').map(cell).join('')}</div><h3>Katakana</h3><div class=g>${ALL.filter(c=>c>='ァ').map(cell).join('')}</div><p class=s>Faint: not learned yet. Pale to solid: how well you know it.</p></section>
+  ${nj?`<section class=card><h3>Kanji</h3><p class=jp style="margin:0">${Object.keys(S.j).join(' ')}</p></section>`:''}
+  <section class=card><h3>Settings</h3><label><input type=checkbox ${S.ord?'checked':''} onchange="S.ord=+this.checked;save()"> Stroke order must match</label><label><input type=checkbox ${S.kt?'checked':''} onchange="S.kt=+this.checked;save()"> Learn katakana alongside hiragana</label><button onclick=place()>Edit the kana I know</button><button onclick=exp()>Export progress</button><label>Import progress <input type=file accept=.json onchange=imp(this)></label></section>
+  <details class=card><summary>Developer: checker tuning</summary>${dbg()}</details>
+  <p><small>Stroke data: KanjiVG © Ulrich Apel, CC BY-SA 3.0. Word data: JMdict and KANJIDIC2 © EDRDG. Progress is stored in this browser only, so export it now and then.</small></p>`);tab('you')}
+function placeSum(){const nk=Object.keys(S.k).length,cw=cuWords().length;
+  h(`<h2>Your starting point</h2><section class=card><p><b>${nk}</b> kana marked as known.</p><p>${cw?`<b>${cw}</b> words use those kana. Nothing is assumed about them. They wait under <b>Catch-up</b> until you check them.`:'No words are waiting yet.'}</p></section>${cw?'<button class=big onclick=catchup()>Check these words now</button>':''}<button class=big style="background:var(--sf);color:var(--ink);border-color:var(--ln)" onclick=home()>Go to the path</button><button onclick=place()>← Edit kana</button>`)}
 function lesson(i){const len=S.len||'std',p=lp(i,len),dl=dueL().length,g=(a,l)=>a.length?`<h3>${l}</h3><div class=chips>${a.map(x=>`<span class=gl>${x}</span>`).join('')}</div>`:'';
   h(`<div class=top><button class=x aria-label=Back onclick=home()>←</button><h2 style="margin:0">${i>=0?'Lesson':'Kanji lesson'}</h2></div>
   <section class=card><h3>Session length</h3><div class=chips>${[['short','Short · about 5 min'],['std','Standard · about 15 min'],['long','Long · extra words and a story']].map(([v,l])=>`<button class=chip aria-pressed="${len==v}" onclick="S.len='${v}';save();lesson(${i})">${l}</button>`).join('')}</div></section>
   <section class=card>${g(p.kana,'New kana')}${g([...p.w,...p.w2],'Words')}${g(p.j,'Kanji')}${p.sty?`<h3>Story</h3><p style="margin:0">“${p.sty.t}”</p>`:''}</section>
   ${dl&&len!='short'?`<label class=sw><span>Start with a short review (${Math.min(dl,len=='long'?4:3)} due)</span><input type=checkbox ${S.wu===0?'':'checked'} onchange="S.wu=this.checked?1:0;save()"></label>`:''}
-  <button class=big onclick="lstart(${i})">Start</button>`)}
+  <button class=big onclick="lstart(${i})">Start</button><button class=big style="background:var(--sf);color:var(--ink);border-color:var(--ln)" onclick="toStart(${i})">I already know this: test me</button>`)}
 function lstart(i){PS.on=0;const len=S.len||'std',p=lp(i,len),q=[],K=p.kana,wa=[...p.w,...p.w2],mk=(ty,id,m,e)=>({ty,id,m,nw:1,...e}),tp=c=>RO[c].includes(' ')?'write':'type',mv=w=>mk('word',w,'mean',{v:Math.random()<.5}),gate=(name,ts)=>q.push({ty:'gate',name,ts});
   if(S.wu!==0&&len!='short')dueL().slice(0,len=='long'?4:3).forEach(x=>q.push(rq1(x)));
   K.forEach(c=>q.push(mk('kana',c,'meet'),mk('kana',c,'write')));if(K.length)gate('Writing the kana',K.map(c=>mk('kana',c,'write')));
@@ -117,7 +140,7 @@ const lev=(a,b)=>{const d=Array.from({length:a.length+1},(_,i)=>[i,...Array(b.le
 const mok=(v,m)=>{const x=norm(v);return !!x&&m.split(/[;,\/]/).some(a=>{a=norm(a);return a==x||(a.length>=5&&lev(a,x)<=1)})};
 function meanT(t){let v='',d=0;const m=MEAN[t.id];
   h(`<h1>${t.v?t.id:rom(t.id)}</h1><button onclick="say('${t.id}')">🔊</button><p class=s>Type the English meaning</p><div class=ty id=ty>…</div><div id=m></div><div class=kb>${KB}<div><button class=kk data-k="␣" style="max-width:none;flex:4">space</button></div><div><button id=dk>I don’t know</button><button id=ent class=big style="width:auto;flex:1;margin:4px">Check</button></div></div>`);
-  const fin=ok=>{if(d)return;d=1;$('#ty').style.color=ok?'#2a9d4a':'#d33';$('#m').innerHTML=(ok?'✓ ':'')+`<b>${t.id}</b> = ${m}`;if(t.pr)pdone(t,ok);else if(!t.nw)grade(t,ok);later(next,ok?900:2200)};
+  const fin=ok=>{if(d)return;d=1;$('#ty').style.color=ok?'#2a9d4a':'#d33';$('#m').innerHTML=(ok?'✓ ':'')+`<b>${t.id}</b> = ${m}`;if(t.pr)pdone(t,ok);else if(!t.nw)grade(t,ok);if(t.cu){if(ok){S.w[t.id]={b:3,d:day()+4};save()}else Q.splice(qi,0,{ty:'word',id:t.id,m:'meet',nw:1},{ty:'word',id:t.id,m:'write',nw:1},{ty:'word',id:t.id,m:'mean',v:false})}if(t.to)TO.r.push(['word',t.id,ok]);later(next,ok?900:2200)};
   bindKB(k=>{if(d)return;v=k=='⌫'?v.slice(0,-1):v+(k=='␣'?' ':k);$('#ty').textContent=v||'…'});
   $('#ent').onclick=()=>fin(mok(v,m));$('#dk').onclick=()=>fin(false)}
 const GL={'は':'topic marker (read “wa”)','が':'subject marker','を':'object marker (read “o”)','に':'at, to','で':'at, by means of','へ':'toward (read “e”)','も':'also, too','の':'of, ’s','と':'and, with','です':'is, am (polite)','さん':'Mr, Ms (polite)'};let LXc;
@@ -181,7 +204,7 @@ function practice(){const dl=dueL(),rv=`<section class=card><h3>Review</h3>${dl.
   <section class=card><h3>How many questions</h3><div class=chips>${[10,20,50,0].map(n=>ch(n||'All',PP.cnt==n,`PP.cnt=${n};practice()`)).join('')}</div></section>
   <section class=card><h3>Question types</h3><div class=chips>${[['write','Draw it'],['type','Type romaji'],['dict','Listen and write'],['rec','Tap the answer']].map(([m,l])=>ch(l,PP.m[m],`PP.m.${m}=PP.m.${m}?0:1;practice()`)).join('')}</div></section>
   <section class=card><label class=sw><span>Repeat mistakes until correct</span><input type=checkbox ${PP.re?'checked':''} onchange="PP.re=+this.checked"></label></section>
-  <button class=big onclick=pstart()>Start</button><button class=big onclick=pstart(1) style="background:var(--sf);color:var(--ink);border-color:var(--ln)">Play Star storm (typing game)</button>`)}
+  <button class=big onclick=pstart()>Start</button><button class=big onclick=pstart(1) style="background:var(--sf);color:var(--ink);border-color:var(--ln)">Play Star storm (typing game)</button>`);tab('practice')}
 function pstart(g){const K=Object.keys(S.k).map(id=>['kana',id]),Wd=Object.keys(S.w).map(id=>['word',id]),J=Object.keys(S.j).map(id=>['kanji',id]),all=[...K,...Wd,...J],sd=x=>bag(x[0])[x[1]],pre=PP.pre;
   const F={all:()=>all,hira:()=>K.filter(x=>x[1]<'ァ'),kata:()=>K.filter(x=>x[1]>='ァ'),words:()=>Wd,kanji:()=>J,due:()=>all.filter(x=>sd(x).d<=day()),weak:()=>all.filter(x=>{const a=S.a[x[1]];return a&&a[1]/(a[0]+a[1])>=.3}),look:()=>K.filter(x=>'シツソンノぬめわれねるろ'.includes(x[1])),small:()=>K.filter(x=>x[1].normalize('NFD').length>1||'ゃゅょっャュョッ'.includes(x[1]))};
   const p=sel.size?all.filter(x=>sel.has(x[1])):F[pre]();if(!p.length)return alert('Nothing to practice in that selection yet.');
@@ -195,7 +218,7 @@ function psum(){const m=Object.keys(PS.miss);PS.on=0;h(`<h2>Done</h2><h1>${PS.ok
 function typeT(t){let v='',d=0;const ans=t.ty=='kana'?RO[t.id]:rom(KR[t.id]||t.id);
   h(`<h1>${t.id}</h1><button onclick="say('${t.id}')">🔊</button><div class=ty id=ty>…</div><div id=m></div><div class=kb>${KB}<button id=ent class=big>Check</button></div>`);
   bindKB(k=>{if(d)return;v=k=='⌫'?v.slice(0,-1):v+k;$('#ty').textContent=v||'…'});
-  $('#ent').onclick=()=>{if(d)return;d=1;const ok=nr(v)==nr(ans)||(t.id=='を'||t.id=='ヲ')&&nr(v)=='o';$('#m').innerHTML=ok?'Nice!':`It is <b>${ans}</b>`;$('#ty').style.color=ok?'#2a9d4a':'#d33';if(t.pr)pdone(t,ok);else if(!t.nw)grade(t,ok);setTimeout(next,ok?600:1600)}}
+  $('#ent').onclick=()=>{if(d)return;d=1;const ok=nr(v)==nr(ans)||(t.id=='を'||t.id=='ヲ')&&nr(v)=='o';$('#m').innerHTML=ok?'Nice!':`It is <b>${ans}</b>`;$('#ty').style.color=ok?'#2a9d4a':'#d33';if(t.pr)pdone(t,ok);else if(!t.nw)grade(t,ok);if(t.to)TO.r.push([t.ty,t.id,ok]);setTimeout(next,ok?600:1600)}}
 function game(it){let lives=3,sc=0,cb=0,cur='',T=[],run=1,lt=0,sp=0,hit={},mis={};
   h(`<div id=hud class=s></div><div class=fld id=fld></div><div class=ty id=ty>…</div><div class=kb>${KB}</div><button id=qt>Quit</button>`);
   const fl=$('#fld'),hud=()=>$('#hud').textContent=`❤ ${lives} · ${sc} pts · combo ${cb}`;hud();
@@ -210,7 +233,7 @@ function game(it){let lives=3,sc=0,cb=0,cur='',T=[],run=1,lt=0,sp=0,hit={},mis={
     if(lives<=0){run=0;return over()}requestAnimationFrame(loop)};
   $('#qt').onclick=()=>{run=0;practice()};requestAnimationFrame(ts=>{lt=ts;loop(ts)})}
 
-function next(){const t=Q[qi++];if(!t)return PS.on?psum():h(`<h2>Session complete</h2><p class=s>Nice work. Reviews show up under Practice when they are due.</p><button class=big onclick=home()>Home</button>`);t.ty=='gate'?gate(t):t.ty=='sq'?sentT(t):t.m=='mean'?meanT(t):t.ty=='cloze'?cloze(t):t.ty=='story'?story(t.id):t.m=='meet'?meet(t):t.m=='rec'?rec(t):t.m=='type'?typeT(t):writeT(t);A.insertAdjacentHTML('afterbegin',`<div class=top><button class=x aria-label=Exit onclick="if(confirm('Leave this session? Progress so far is kept.'))home()">✕</button><div class=bar><i style="width:${Math.min(100,(qi-1)/Q.length*100)}%"></i></div>${PS.on&&PS.re?`<span class=s>${PS.fix.size} to fix</span>`:''}</div>`)}
+function next(){const t=Q[qi++];if(!t)return TO.on?tres():PS.on?psum():h(`<h2>Session complete</h2><p class=s>Nice work. Reviews show up under Practice when they are due.</p><button class=big onclick=home()>Home</button>`);t.ty=='gate'?gate(t):t.ty=='sq'?sentT(t):t.m=='mean'?meanT(t):t.ty=='cloze'?cloze(t):t.ty=='story'?story(t.id):t.m=='meet'?meet(t):t.m=='rec'?rec(t):t.m=='type'?typeT(t):writeT(t);A.insertAdjacentHTML('afterbegin',`<div class=top><button class=x aria-label=Exit onclick="if(confirm('Leave this session? Progress so far is kept.'))home()">✕</button><div class=bar><i style="width:${Math.min(100,(qi-1)/Q.length*100)}%"></i></div>${PS.on&&PS.re?`<span class=s>${PS.fix.size} to fix</span>`:''}</div>`)}
 const bag=ty=>ty=='kana'?S.k:ty=='kanji'?S.j:S.w;
 const kc=()=>new Set(Object.keys(S.j).join('')),bx=c=>Math.max(0,...Object.entries(S.j).filter(([k])=>k.includes(c)).map(([,v])=>v.b));
 const rd=t=>t.replace(/\{([^|}]*)\|([^}]*)\}/g,(m,k,r)=>{const ch=[...k].filter(c=>c>='\u4e00'),K=kc();return ch.length&&ch.every(c=>K.has(c))?`<ruby>${k}<rt>${ch.some(c=>bx(c)<4)?r:''}</rt></ruby>`:r}),pl=t=>t.replace(/\{[^|}]*\|([^}]*)\}/g,'$1').replace(/ /g,'');
@@ -229,7 +252,7 @@ function writeT(t){const ch=t.ty=='kana'?[t.id]:[...t.id],n=ch.length,strict=n==
   const M=$('#m'),P0=pad($('#c'));P=P0;
   const upd=()=>{if(n<2)return;[...$('#wl').children].forEach((b,i)=>{const r=res[i];b.className='wb'+(r?' '+r.v:'')+(i==cur&&!fin?' cur':'');b.lastChild.textContent=r?{ok:'✓',near:'~',bad:'!'}[r.v]:'';if(r)mini(b.firstChild,r.s);else b.firstChild.getContext('2d').clearRect(0,0,104,104)});try{$('#wl').children[cur].scrollIntoView({inline:'center',block:'nearest',behavior:'smooth'})}catch(e){}};
   const setRef=()=>{P.ref=ST[ch[cur]];P.showRef=0;P.lock=0;$('#hn').setAttribute('aria-pressed',false);P.clear();upd()};
-  const done=()=>{clrT();if(t.nw){const v=bag(t.ty)[t.id];v.b=bad?0:1}if(t.pr)pdone(t,!bad);else grade(t,!bad);next()};
+  const done=()=>{clrT();if(t.ty=='kana'&&!bad&&S.k[t.id])S.k[t.id].wr=1;if(t.to)TO.r.push([t.ty,t.id,!bad]);if(t.nw){const v=bag(t.ty)[t.id];v.b=bad?0:1}if(t.pr)pdone(t,!bad);else grade(t,!bad);next()};
   const nxt=()=>{const b=document.createElement('button');b.className='chip';b.textContent='Next';b.onclick=done;M.append(b)};
   const wd=()=>{const bc=res.filter(r=>r.v=='bad').length,nr=res.filter(r=>r.v=='near').length;
     if(!bc){fin=1;P.lock=1;upd();M.innerHTML=`<b>✓ Word correct!</b> ${nr?'<span class=s>A few characters were slightly off. Tap a box to see why.</span> ':''}`;nxt();later(done,D().okMs+(nr?1500:0))}
